@@ -139,22 +139,6 @@ public final class MainActivity extends Activity {
         addSwitch(base, "playableHelper", "Avançar playables sem abrir links");
         addSpeed(base);
 
-        if ("com.kwai.video".equals(selectedPackage)) {
-            section("Kwai");
-            addSwitch(base, "forceKwaiGames", "Abrir e manter na aba Jogos");
-            addSwitch(base, "blockKwaiShorts", "Bloquear aba de vídeos curtos");
-            addSwitch(base, "muteKwaiShorts", "Silenciar somente vídeos curtos");
-            addSwitch(base, "repairKwaiGoldTouch", "Reparar toque em Kwai Golds");
-            addSwitch(base, "repairKwaiWebNetwork", "Compatibilidade WebView para Kwai Golds");
-        }
-    }
-
-    private void section(String text) {
-        TextView v = new TextView(this);
-        v.setText(text);
-        v.setTextSize(18);
-        v.setPadding(0, 22, 0, 8);
-        options.addView(v);
     }
 
     private void addSwitch(String prefix, String key, String label) {

@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- Necessario para o painel listar qualquer app escolhido pelo usuario. -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
 
     <application
         android:allowBackup="false"
@@ -16,8 +20,7 @@
         <meta-data android:name="xposedminversion" android:value="93" />
         <activity
             android:name=".MainActivity"
-            android:exported="true"
-            android:label="Universal Ad Shield">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -25,7 +28,8 @@
         </activity>
         <provider
             android:name=".ConfigProvider"
-            android:authorities="dev.codex.universaladshield.v2.config"
-            android:exported="true" />
+            android:authorities="io.github.atiladpribeiro.universaladshield.config"
+            android:exported="true"
+            tools:ignore="ExportedContentProvider" />
     </application>
 </manifest>

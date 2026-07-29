@@ -1,4 +1,4 @@
-# Validacao - Universal Ad Shield 2.0.0
+# Validacao - Universal Ad Shield 2.1.0
 
 Data: 2026-07-29
 
@@ -9,29 +9,44 @@ Dispositivo:
 - KernelSU Next
 - LSPosed Irena
 
-## Resultado
+## Resultado de build
 
 - `assembleDebug`: passou.
-- APK instalado como `dev.codex.universaladshield.v2`: passou.
-- LSPosed carregou `UniversalAdShield: v2.0.0` em `com.kwai.video`.
-- Kwai abriu automaticamente na aba Jogos:
-  - log: `Kwai forced to Games tab, accepted=true`;
-  - hierarquia: `KrnReactRootView` com `mBundleId='GameCenter'`.
-- Toque na aba Inicio do Kwai nao removeu a aba Jogos; Home ficou desabilitado
-  na hierarquia.
-- Painel nativo abriu sem crash e exibiu opcoes do Kwai em portugues.
-- Prezao abriu com modulo v2 no escopo.
-- FakeGApps foi escopado para GMS/Play Store/GSF/Kwai/Prezao sem remover apps;
-  o aviso de assinatura invalida do Play Services nao reapareceu no recorte
-  apos reboot.
+- `lintDebug`: passou sem erros apos corrigir a chamada do ContentProvider para
+  uma API compativel com o `minSdk 24`.
+- APK: `io.github.atiladpribeiro.universaladshield`, `versionCode 41`,
+  `versionName 2.1.0`.
+- Entrada LSPosed no APK:
+  `io.github.atiladpribeiro.universaladshield.UniversalAdShield`.
+
+## Resultado no tablet
+
+- O LSPosed carregou `UniversalAdShield: v2.1.0` em `com.kwai.video` e
+  `br.com.mobicare.clarofree`.
+- A abertura fria do Kwai entrou automaticamente na aba Jogos.
+- Foi necessario suportar o `TinyLaunchActivity`, cuja barra inferior pode nao
+  expor IDs Android; o fallback usa as coordenadas reais do segundo item.
+- Um toque fisico em Inicio foi testado e a aba Jogos permaneceu ativa.
+- O conteudo da aba Jogos carregou e nao houve `FATAL EXCEPTION`.
+- O Prezao abriu sem tarja preta orfa e sem erro fatal no recorte capturado.
+- FakeGApps permaneceu escopado para GMS, Play Store, GSF, Kwai e Prezao, sem
+  remover aplicativos; o aviso de assinatura invalida nao reapareceu.
+
+## Consolidacao
+
+- Os pacotes experimentais antigos foram salvos fora do Git e desinstalados do
+  tablet depois da validacao do pacote final.
+- A consulta final ao Package Manager retornou somente
+  `io.github.atiladpribeiro.universaladshield`.
+- A consulta final ao banco do LSPosed retornou somente esse modulo, ativo para
+  o usuario 0 e escopado para Kwai e Prezao.
 
 ## Observacoes
 
-- O pacote antigo `dev.codex.universaladshield` foi mantido instalado como
-  rollback porque a assinatura do APK antigo nao bate com a chave debug atual.
 - O modulo nao usa `Activity.finish()` como fallback de fechamento.
-- Anuncios recompensados aguardam callback real de recompensa/conclusao antes
-  de fechar.
-- O teste de anuncio real depende de disponibilidade do SDK/backend; quando nao
-  houve anuncio, foram validados hooks, escopo, abertura, ausencia de crash e
-  estado de UI.
+- Anuncios recompensados aguardam callback real de recompensa ou conclusao
+  antes de fechar.
+- A disponibilidade de um anuncio real depende do SDK/backend. Quando o backend
+  nao entrega anuncio durante a janela de teste, nao e correto afirmar que o
+  fluxo de recompensa remoto foi exercitado; foram validados os hooks, o escopo,
+  a abertura, a ausencia de crash e o estado da interface.

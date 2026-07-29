@@ -1,4 +1,4 @@
-package dev.codex.universaladshield;
+package io.github.atiladpribeiro.universaladshield;
 
 import android.content.ContentProvider;
 import android.content.ContentValues;

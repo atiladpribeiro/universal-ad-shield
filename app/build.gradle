@@ -3,16 +3,16 @@ plugins {
 }
 
 android {
-    namespace "dev.codex.universaladshield"
+    namespace "io.github.atiladpribeiro.universaladshield"
     compileSdk 35
     buildToolsVersion "35.0.0"
 
     defaultConfig {
-        applicationId "dev.codex.universaladshield.v2"
+        applicationId "io.github.atiladpribeiro.universaladshield"
         minSdk 24
         targetSdk 35
-        versionCode 40
-        versionName "2.0.0"
+        versionCode 41
+        versionName "2.1.0"
     }
 
     buildTypes {

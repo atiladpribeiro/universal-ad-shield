@@ -1,4 +1,4 @@
-package dev.codex.universaladshield;
+package io.github.atiladpribeiro.universaladshield;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 public final class MainActivity extends Activity {
     private SharedPreferences prefs;
@@ -93,7 +94,7 @@ public final class MainActivity extends Activity {
             CharSequence label = ai.loadLabel(pm);
             apps.add(new AppEntry(label == null ? ai.packageName : label.toString(), ai.packageName));
         }
-        Collections.sort(apps, Comparator.comparing(a -> a.label.toLowerCase()));
+        Collections.sort(apps, Comparator.comparing(a -> a.label.toLowerCase(Locale.ROOT)));
         ArrayAdapter<AppEntry> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, apps);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         appSpinner.setAdapter(adapter);

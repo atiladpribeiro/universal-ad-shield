@@ -1,4 +1,4 @@
-package dev.codex.universaladshield;
+package io.github.atiladpribeiro.universaladshield;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -123,7 +123,7 @@ public final class UniversalAdShield implements IXposedHookLoadPackage {
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
         if (shouldNeverHook(lpparam.packageName)) return;
         try {
-            XposedBridge.log(TAG + ": v2.0.0 loaded in " + lpparam.packageName);
+            XposedBridge.log(TAG + ": v2.1.0 loaded in " + lpparam.packageName);
             if (CORE_HOOKS_INSTALLED.compareAndSet(false, true)) {
                 hookLifecycle();
                 hookExternalLaunches();
@@ -142,8 +142,8 @@ public final class UniversalAdShield implements IXposedHookLoadPackage {
 
     private static boolean shouldNeverHook(String pkg) {
         return pkg == null || pkg.equals("android") || pkg.equals("com.android.systemui")
-                || pkg.equals("org.lsposed.manager") || pkg.equals("dev.codex.universaladshield")
-                || pkg.equals("dev.codex.universaladshield.v2")
+                || pkg.equals("org.lsposed.manager")
+                || pkg.equals("io.github.atiladpribeiro.universaladshield")
                 || pkg.equals("com.android.webview") || pkg.equals("com.google.android.webview")
                 || pkg.contains(":") || pkg.startsWith("com.android.launcher")
                 || pkg.startsWith("app.lawnchair");
@@ -1278,7 +1278,10 @@ public final class UniversalAdShield implements IXposedHookLoadPackage {
 
     private static final class BlockingOverlay extends FrameLayout {
         BlockingOverlay(Context c) { super(c); }
-        @Override public boolean onTouchEvent(MotionEvent e) { return true; }
+        @Override public boolean onTouchEvent(MotionEvent e) {
+            if (e.getActionMasked() == MotionEvent.ACTION_UP) performClick();
+            return true;
+        }
         @Override public boolean performClick() { super.performClick(); return true; }
     }
 
@@ -1387,14 +1390,12 @@ public final class UniversalAdShield implements IXposedHookLoadPackage {
                 settings.setLoadsImagesAutomatically(true);
                 settings.setBlockNetworkLoads(false);
                 settings.setBlockNetworkImage(false);
-                if (android.os.Build.VERSION.SDK_INT >= 21) {
-                    settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-                }
+                settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
             }
             try {
                 CookieManager manager = CookieManager.getInstance();
                 manager.setAcceptCookie(true);
-                if (android.os.Build.VERSION.SDK_INT >= 21) manager.setAcceptThirdPartyCookies(web, true);
+                manager.setAcceptThirdPartyCookies(web, true);
             } catch (Throwable ignored) {
             }
         } catch (Throwable t) {
@@ -1441,23 +1442,65 @@ public final class UniversalAdShield implements IXposedHookLoadPackage {
         if (!usable(a)) return;
         View root = a.getWindow() == null ? null : a.getWindow().getDecorView();
         if (!(root instanceof ViewGroup)) return;
+        if (config.forceKwaiGames && gameCenterVisible(root)) return;
         View game = findByResourceName(root, "id_bottom_tab_explore");
-        if (game == null) return;
         View home = findByResourceName(root, "id_home_bottom_tab_home");
         if (config.blockKwaiShorts && home != null) {
             home.setEnabled(false);
             home.setClickable(false);
             home.setAlpha(Math.min(home.getAlpha(), 0.45f));
         }
-        if (!config.forceKwaiGames || gameCenterVisible(root)) return;
+        if (!config.forceKwaiGames) return;
+        if (game == null) {
+            // O TinyLaunchActivity de algumas versoes renderiza a barra sem IDs
+            // Android. A aba Jogo ocupa o segundo item da barra inferior.
+            boolean accepted = tapThroughActivity(a, root.getWidth() * 0.30f,
+                    root.getHeight() * 0.981f);
+            XposedBridge.log(TAG + ": Kwai Games fallback tap, accepted=" + accepted);
+            return;
+        }
         if (game != null && game.isShown() && game.isEnabled()) {
             try {
                 boolean accepted = game.performClick();
-                if (!accepted) accepted = tapCenter(game);
+                // Algumas versoes do Kwai retornam true em performClick(), mas o
+                // listener interno ignora cliques sinteticos no filho. Despachar
+                // pelo Activity percorre a mesma hierarquia de um toque real.
+                accepted |= tapThroughActivity(a, game);
                 XposedBridge.log(TAG + ": Kwai forced to Games tab, accepted=" + accepted);
             } catch (Throwable t) {
                 XposedBridge.log(TAG + ": Kwai Games click failed: " + t);
             }
+        }
+    }
+
+    private static boolean tapThroughActivity(Activity activity, View target) {
+        if (!usable(activity) || target == null || target.getWidth() <= 0 || target.getHeight() <= 0)
+            return false;
+        View decor = activity.getWindow() == null ? null : activity.getWindow().getDecorView();
+        if (decor == null) return tapCenter(target);
+        int[] targetPosition = new int[2];
+        int[] decorPosition = new int[2];
+        target.getLocationOnScreen(targetPosition);
+        decor.getLocationOnScreen(decorPosition);
+        float x = targetPosition[0] - decorPosition[0] + target.getWidth() / 2f;
+        float y = targetPosition[1] - decorPosition[1] + target.getHeight() / 2f;
+        return tapThroughActivity(activity, x, y);
+    }
+
+    private static boolean tapThroughActivity(Activity activity, float x, float y) {
+        if (!usable(activity) || x < 0 || y < 0) return false;
+        long now = SystemClock.uptimeMillis();
+        MotionEvent down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, x, y, 0);
+        MotionEvent up = MotionEvent.obtain(now, now + 55, MotionEvent.ACTION_UP, x, y, 0);
+        try {
+            boolean accepted = activity.dispatchTouchEvent(down);
+            accepted |= activity.dispatchTouchEvent(up);
+            return accepted;
+        } catch (Throwable ignored) {
+            return false;
+        } finally {
+            down.recycle();
+            up.recycle();
         }
     }
 

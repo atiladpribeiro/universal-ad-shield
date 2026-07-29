@@ -1,13 +1,14 @@
-package dev.codex.universaladshield;
+package io.github.atiladpribeiro.universaladshield;
 
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
 
 final class AppConfig {
-    static final String AUTHORITY = "dev.codex.universaladshield.v2.config";
+    static final String AUTHORITY = "io.github.atiladpribeiro.universaladshield.config";
     static final String PREFS = "uas_config";
     private static volatile long providerRetryAfter;
 
@@ -55,7 +56,7 @@ final class AppConfig {
             ContentResolver resolver = context.getContentResolver();
             Bundle args = new Bundle();
             args.putString("package", packageName);
-            Bundle b = resolver.call(AUTHORITY, "get", packageName, args);
+            Bundle b = resolver.call(Uri.parse("content://" + AUTHORITY), "get", packageName, args);
             if (b != null) return new AppConfig(b);
         } catch (Throwable ignored) {
             providerRetryAfter = now + 30000;

@@ -1,0 +1,33 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "dev.codex.universaladshield"
+    compileSdk 35
+    buildToolsVersion "35.0.0"
+
+    defaultConfig {
+        applicationId "dev.codex.universaladshield.v2"
+        minSdk 24
+        targetSdk 35
+        versionCode 40
+        versionName "2.0.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    compileOnly files("libs/api-82.jar")
+    testImplementation "junit:junit:4.13.2"
+}

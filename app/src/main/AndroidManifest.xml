@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+
+    <application
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:hasCode="true"
+        android:icon="@drawable/ic_shield"
+        android:label="Universal Ad Shield"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <meta-data android:name="xposedmodule" android:value="true" />
+        <meta-data android:name="xposeddescription" android:value="Painel por app, tarja preta, contenção de links e aceleração segura de anúncios fullscreen." />
+        <meta-data android:name="xposedminversion" android:value="93" />
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="Universal Ad Shield">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <provider
+            android:name=".ConfigProvider"
+            android:authorities="dev.codex.universaladshield.v2.config"
+            android:exported="true" />
+    </application>
+</manifest>

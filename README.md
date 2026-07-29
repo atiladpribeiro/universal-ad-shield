@@ -1,95 +1,70 @@
-# Universal Ad Shield 2.1.0
+# Universal Ad Shield 2.2.0
 
-Modulo LSPosed unico para cobrir, silenciar, acelerar quando seguro e fechar
-anuncios fullscreen somente depois de evidencia real de conclusao ou recompensa
-do SDK.
+Módulo LSPosed único para proteger anúncios em tela cheia: cobre o criativo,
+silencia o áudio, tenta acelerar apenas pelo player real e fecha somente depois
+de uma evidência válida de conclusão ou recompensa.
 
-O pacote oficial e unico e:
+Pacote oficial único:
 
 `io.github.atiladpribeiro.universaladshield`
 
-Nao existe uma edicao paralela ou pacote `v2`. A versao 2.1.0 consolida todas
-as funcoes anteriores, o painel por aplicativo e as correcoes especificas do
-Kwai e do Prezao.
+Não existe pacote `v2` nem edição com referência a IA. A versão 2.2.0 mantém as
+funções de anúncios das versões anteriores e remove do Shield as alterações da
+interface do Kwai, que agora pertencem ao módulo separado **Kwai Enhancer**.
 
-## Principais recursos
+## Recursos
 
-- Tarja preta fullscreen com rodape maior e status tecnico em portugues.
-- Bloqueio de toques e links externos durante anuncios fullscreen.
-- Mute de AudioTrack, MediaPlayer, SoundPool, HTML5 video, ExoPlayer/Media3 e
-  player nativo do Kwai quando ha sessao de anuncio ativa.
-- Aceleracao conservadora e configuravel, com fallback para velocidades aceitas
-  pelo player real.
-- Fechamento automatico apenas por controle real exposto pelo SDK.
-- Em anuncio recompensado, fim de video nao conta como recompensa: o modulo
-  aguarda callback ou estado real de recompensa antes de acionar fechamento.
-- Recuperacao de tarja preta orfa quando a Activity deixa de ser anuncio.
-- Painel por app para protecao, overlay, mute, aceleracao, bloqueio de links,
-  auto-close e auxiliares.
-- Compatibilidade desde Android 7.0 (API 24) ate Android 15/16, respeitando as
-  APIs realmente disponiveis em cada versao.
+- Detecção genérica por Activity, pilha de SDK e WebView fullscreen, sem lista
+  fechada de aplicativos.
+- Tarja preta fullscreen com rodapé técnico em português e fonte de 12 sp.
+- Bloqueio de toque e de links externos enquanto a sessão de anúncio está ativa.
+- Silenciamento de AudioTrack, MediaPlayer, SoundPool, HTML5, ExoPlayer/Media3
+  e players nativos detectados.
+- Aceleração conservadora e configurável, com confirmação da velocidade aceita
+  pelo player e fallback seguro.
+- Fechamento automático por controle real do anúncio; não usa `Activity.finish()`
+  para simular conclusão.
+- Anúncios recompensados aguardam callback/estado real de recompensa.
+- Recuperação de tarja órfã quando a Activity deixa de ser anúncio ou encerra.
+- Auxílio opcional para playables, sem abrir loja, navegador ou links externos.
+- Painel por aplicativo para ativar proteção, overlay, mute, aceleração,
+  velocidade máxima, bloqueio externo, auto-close e auxílio de playable.
+- Android 7.0 (API 24) até Android 15/16, usando somente APIs compatíveis.
 
-## Kwai
+## Instalação
 
-Para `com.kwai.video`, os padroes extras ficam ligados:
+1. Instale o APK.
+2. Ative **Universal Ad Shield** no LSPosed.
+3. Selecione somente os aplicativos desejados no escopo.
+4. Force a parada dos aplicativos afetados ou reinicie o aparelho.
 
-- abrir e manter a aba `Jogo/Jogos`, inclusive no `TinyLaunchActivity` que nao
-  expoe IDs Android na barra inferior;
-- bloquear o retorno para a aba inicial de videos curtos;
-- silenciar somente os videos curtos caso a interface tente exibi-los durante
-  uma corrida de inicializacao;
-- reparar toque em `KwaiRnActivity` e `OverseaWebActivity`, incluindo Kwai
-  Golds;
-- aplicar compatibilidade WebView em rotas de Kwai Golds/UG Center.
-
-## Instalar
-
-1. Instale o APK da versao 2.1.0.
-2. Ative `Universal Ad Shield` no LSPosed.
-3. Marque no escopo somente os apps desejados.
-4. Reinicie o aparelho ou force-stop no app alvo depois de mudar o escopo.
-
-Se houver uma instalacao experimental antiga, desative e remova os pacotes
-antigos somente depois de ativar o pacote oficial acima. No tablet validado,
-essa migracao ja foi concluida e restou um unico modulo.
-
-## Escopo usado no teste
+O escopo validado neste tablet foi:
 
 - `com.kwai.video`
 - `br.com.mobicare.clarofree`
 
-O escopo do FakeGApps/microG foi mantido em GMS, Play Store, GSF, Kwai e Prezao,
-sem remover nenhum aplicativo. Isso corrige o ambiente em que o Prezao
-registrava assinatura invalida do Google Play Services.
+## Kwai
 
-## Validacao feita
-
-- `assembleDebug`: passou.
-- `lintDebug`: passou sem erros.
-- APK inspecionado: pacote, versao e classe de entrada LSPosed corretos.
-- LSPosed carregando `UniversalAdShield: v2.1.0` no Kwai e no Prezao.
-- Abertura fria do Kwai entrou automaticamente em Jogos.
-- Toque fisico em Inicio manteve Jogos ativo.
-- Conteudo da aba Jogos carregou sem crash.
-- Prezao abriu sem tarja preta orfa e sem erro fatal.
-- Banco do LSPosed conferido apos a migracao: somente o pacote oficial esta
-  instalado, ativo e escopado.
-
-Consulte [VALIDACAO.md](VALIDACAO.md) para o relatorio completo.
+O Shield atua somente nos anúncios do Kwai. A abertura em Jogos, a redução dos
+menus e as correções da área Kwai Golds ficam no repositório **Kwai Enhancer**.
+Assim, a proteção genérica não carrega regras de navegação de um aplicativo
+específico.
 
 ## Limites reais
 
-- O modulo nao falsifica recompensa e nao encerra Activity por `finish()`.
-  Isso evita perder uma recompensa que o servidor ainda nao confirmou.
-- A entrega de anuncios depende do SDK e do backend de cada rede. Sem um anuncio
-  entregue no momento do teste, e possivel validar hooks, escopo, abertura,
-  ausencia de crash e estado da interface, mas nao inventar uma resposta do
-  servidor.
-- Falhas externas de TLS ou indisponibilidade do backend do Kwai nao podem ser
-  transformadas em conectividade real pelo modulo. A compatibilidade WebView e
-  o ambiente microG/FakeGApps foram corrigidos sem remover apps.
+- O módulo não falsifica recompensa nem resposta do servidor.
+- Sem anúncio entregue pelo SDK, é possível comprovar carregamento dos hooks,
+  ausência de crash, limpeza de overlay e isolamento das telas normais, mas não
+  afirmar que uma recompensa remota inexistente foi concluída.
+- DNS, microG, Play Services e backend de cada rede continuam responsáveis por
+  entregar o anúncio. Consulte [VALIDACAO.md](VALIDACAO.md) para os resultados e
+  bloqueios externos observados no tablet de teste.
 
-## Rollback
+## Compilação
 
-Antes da migracao no tablet, os APKs antigos e o banco do LSPosed foram salvos
-fora deste repositorio. Para uso normal, instale somente o APK oficial 2.1.0.
+```bash
+gradle --no-daemon --max-workers=1 clean testDebugUnitTest lintDebug assembleDebug
+```
+
+O uso de um único worker é intencional para reduzir CPU e memória durante o
+build.

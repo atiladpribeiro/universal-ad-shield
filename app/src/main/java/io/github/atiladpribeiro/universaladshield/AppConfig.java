@@ -20,11 +20,6 @@ final class AppConfig {
     final boolean accelerate;
     final boolean autoClose;
     final boolean playableHelper;
-    final boolean forceKwaiGames;
-    final boolean blockKwaiShorts;
-    final boolean muteKwaiShorts;
-    final boolean repairKwaiGoldTouch;
-    final boolean repairKwaiWebNetwork;
     final int maxSpeed;
 
     AppConfig(Bundle b) {
@@ -36,11 +31,6 @@ final class AppConfig {
         accelerate = b.getBoolean("accelerate", true);
         autoClose = b.getBoolean("autoClose", true);
         playableHelper = b.getBoolean("playableHelper", true);
-        forceKwaiGames = b.getBoolean("forceKwaiGames", true);
-        blockKwaiShorts = b.getBoolean("blockKwaiShorts", true);
-        muteKwaiShorts = b.getBoolean("muteKwaiShorts", true);
-        repairKwaiGoldTouch = b.getBoolean("repairKwaiGoldTouch", true);
-        repairKwaiWebNetwork = b.getBoolean("repairKwaiWebNetwork", true);
         maxSpeed = Math.max(1, Math.min(8, b.getInt("maxSpeed", 4)));
     }
 
@@ -74,11 +64,6 @@ final class AppConfig {
         b.putBoolean("accelerate", true);
         b.putBoolean("autoClose", true);
         b.putBoolean("playableHelper", true);
-        b.putBoolean("forceKwaiGames", "com.kwai.video".equals(packageName));
-        b.putBoolean("blockKwaiShorts", "com.kwai.video".equals(packageName));
-        b.putBoolean("muteKwaiShorts", "com.kwai.video".equals(packageName));
-        b.putBoolean("repairKwaiGoldTouch", "com.kwai.video".equals(packageName));
-        b.putBoolean("repairKwaiWebNetwork", "com.kwai.video".equals(packageName));
         b.putInt("maxSpeed", 4);
         return b;
     }
@@ -88,12 +73,6 @@ final class AppConfig {
         applyPrefs(b, prefs, "global.");
         if (prefs.getBoolean("app." + packageName + ".custom", false)) {
             applyPrefs(b, prefs, "app." + packageName + ".");
-        }
-        if (!"com.kwai.video".equals(packageName)) {
-            b.putBoolean("forceKwaiGames", false);
-            b.putBoolean("blockKwaiShorts", false);
-            b.putBoolean("muteKwaiShorts", false);
-            b.putBoolean("repairKwaiGoldTouch", false);
         }
         return b;
     }
@@ -107,11 +86,6 @@ final class AppConfig {
         putBool(b, prefs, prefix, "accelerate");
         putBool(b, prefs, prefix, "autoClose");
         putBool(b, prefs, prefix, "playableHelper");
-        putBool(b, prefs, prefix, "forceKwaiGames");
-        putBool(b, prefs, prefix, "blockKwaiShorts");
-        putBool(b, prefs, prefix, "muteKwaiShorts");
-        putBool(b, prefs, prefix, "repairKwaiGoldTouch");
-        putBool(b, prefs, prefix, "repairKwaiWebNetwork");
         String speedKey = prefix + "maxSpeed";
         if (prefs.contains(speedKey)) b.putInt("maxSpeed", prefs.getInt(speedKey, b.getInt("maxSpeed", 4)));
     }

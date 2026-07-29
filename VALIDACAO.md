@@ -1,52 +1,57 @@
-# Validacao - Universal Ad Shield 2.1.0
+# Validação — Universal Ad Shield 2.2.0
 
 Data: 2026-07-29
 
-Dispositivo:
+Dispositivo: Galaxy Tab A9 SM-X115, Android 16 AOSP GSI, KernelSU Next e
+LSPosed Irena.
 
-- Galaxy Tab A9 SM-X115
-- Android 16 AOSP GSI
-- KernelSU Next
-- LSPosed Irena
+## Build e inspeção
 
-## Resultado de build
-
-- `assembleDebug`: passou.
-- `lintDebug`: passou sem erros apos corrigir a chamada do ContentProvider para
-  uma API compativel com o `minSdk 24`.
-- APK: `io.github.atiladpribeiro.universaladshield`, `versionCode 41`,
-  `versionName 2.1.0`.
-- Entrada LSPosed no APK:
+- `lintDebug` e `assembleDebug`: aprovados; `testDebugUnitTest` terminou como
+  `NO-SOURCE` porque o projeto ainda não possui testes JVM isolados.
+- Pacote: `io.github.atiladpribeiro.universaladshield`.
+- `versionCode 42`, `versionName 2.2.0`.
+- Entrada LSPosed conferida no APK:
   `io.github.atiladpribeiro.universaladshield.UniversalAdShield`.
+- Build limitado a um worker e sem daemon persistente.
 
-## Resultado no tablet
+## Kwai (`com.kwai.video`)
 
-- O LSPosed carregou `UniversalAdShield: v2.1.0` em `com.kwai.video` e
-  `br.com.mobicare.clarofree`.
-- A abertura fria do Kwai entrou automaticamente na aba Jogos.
-- Foi necessario suportar o `TinyLaunchActivity`, cuja barra inferior pode nao
-  expor IDs Android; o fallback usa as coordenadas reais do segundo item.
-- Um toque fisico em Inicio foi testado e a aba Jogos permaneceu ativa.
-- O conteudo da aba Jogos carregou e nao houve `FATAL EXCEPTION`.
-- O Prezao abriu sem tarja preta orfa e sem erro fatal no recorte capturado.
-- FakeGApps permaneceu escopado para GMS, Play Store, GSF, Kwai e Prezao, sem
-  remover aplicativos; o aviso de assinatura invalida nao reapareceu.
+- LSPosed registrou `UniversalAdShield: v2.2.0 loaded in com.kwai.video`.
+- A tela Jogos, Perfil e a Activity React de Kwai Golds permaneceram fora da
+  detecção de anúncio; não houve tarja preta falsa nessas telas.
+- A tela Golds rolou após conceder as permissões de localização declaradas pelo
+  próprio Kwai, eliminando a violação de `WifiService#getScanResults`.
+- O botão React de iniciar o anúncio não respondeu nem no teste sem módulos;
+  portanto o backend não abriu um criativo recompensado nesta sessão. Não foi
+  registrada recompensa falsa nem fechamento forçado.
+- Não houve `FATAL EXCEPTION` nem ANR no fluxo exercitado.
 
-## Consolidacao
+## Prezão Free (`br.com.mobicare.clarofree`)
 
-- Os pacotes experimentais antigos foram salvos fora do Git e desinstalados do
-  tablet depois da validacao do pacote final.
-- A consulta final ao Package Manager retornou somente
-  `io.github.atiladpribeiro.universaladshield`.
-- A consulta final ao banco do LSPosed retornou somente esse modulo, ativo para
-  o usuario 0 e escopado para Kwai e Prezao.
+- LSPosed carregou FakeGApps e Universal Ad Shield 2.2.0 no processo real.
+- A abertura fria chegou à tela principal completa, sem tarja preta órfã.
+- Jogos abriu a Roleta Prezão Free; um giro real terminou e creditou 5 moedas,
+  sem reiniciar o jogo e sem crash.
+- O log do aplicativo informou assinatura inválida do Google Play Services e a
+  rede Fyber tentou acessar `fev.fyber.com/0.0.0.0:443`; o anúncio não foi
+  entregue pelo ambiente de rede/Play Services.
+- Os espaços de publicidade continuaram sem criativo e registraram `Ad failed
+  to load : 0`; por isso não houve Activity fullscreen a proteger. O Shield não
+  criou overlay falso e não houve tarja preta órfã, `FATAL EXCEPTION` ou ANR.
 
-## Observacoes
+## Regressões verificadas
 
-- O modulo nao usa `Activity.finish()` como fallback de fechamento.
-- Anuncios recompensados aguardam callback real de recompensa ou conclusao
-  antes de fechar.
-- A disponibilidade de um anuncio real depende do SDK/backend. Quando o backend
-  nao entrega anuncio durante a janela de teste, nao e correto afirmar que o
-  fluxo de recompensa remoto foi exercitado; foram validados os hooks, o escopo,
-  a abertura, a ausencia de crash e o estado da interface.
+- As funções de navegação, menu, feed curto e Kwai Golds foram removidas deste
+  módulo e preservadas no Kwai Enhancer.
+- Mute global fora de anúncio não é aplicado.
+- Activities normais do Kwai são exclusões explícitas da detecção genérica.
+- Fechamento recompensado continua condicionado a evidência real do SDK.
+
+## Conclusão técnica
+
+O código, APK, carregamento LSPosed, isolamento de telas normais e ausência de
+crash foram validados nos dois aplicativos. A conclusão remota de anúncio não
+pôde ser reproduzida porque nenhum dos dois SDKs entregou um criativo acionável
+no ambiente atual. Este relatório não transforma esse bloqueio externo em uma
+garantia falsa de recompensa.

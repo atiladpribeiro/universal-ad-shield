@@ -18,13 +18,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
-import android.view.WindowManager;
 import android.view.accessibility.AccessibilityNodeInfo;
-import android.webkit.CookieManager;
-import android.webkit.SslErrorHandler;
-import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
@@ -74,7 +69,6 @@ public final class UniversalAdShield implements IXposedHookLoadPackage {
             Collections.synchronizedMap(new WeakHashMap<>());
     private static final Map<Object, WeakReference<Session>> KWAI_PLAYER_SESSIONS =
             Collections.synchronizedMap(new WeakHashMap<>());
-    private static volatile WeakReference<Activity> CURRENT_KWAI_ACTIVITY;
     private static final Set<MediaPlayer.OnCompletionListener> WRAPPED_LISTENERS =
             Collections.newSetFromMap(new WeakHashMap<>());
 
@@ -123,7 +117,7 @@ public final class UniversalAdShield implements IXposedHookLoadPackage {
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
         if (shouldNeverHook(lpparam.packageName)) return;
         try {
-            XposedBridge.log(TAG + ": v2.1.0 loaded in " + lpparam.packageName);
+            XposedBridge.log(TAG + ": v2.2.0 loaded in " + lpparam.packageName);
             if (CORE_HOOKS_INSTALLED.compareAndSet(false, true)) {
                 hookLifecycle();
                 hookExternalLaunches();
@@ -134,7 +128,6 @@ public final class UniversalAdShield implements IXposedHookLoadPackage {
             hookKnownCompletionSurfaces(lpparam.classLoader);
             hookPangleProgress(lpparam.classLoader);
             hookKwaiPlayer(lpparam.classLoader);
-            if ("com.kwai.video".equals(lpparam.packageName)) hookKwaiUi(lpparam.classLoader);
         } catch (Throwable t) {
             XposedBridge.log(TAG + ": install failure in " + lpparam.packageName + ": " + t);
         }
@@ -156,14 +149,7 @@ public final class UniversalAdShield implements IXposedHookLoadPackage {
                 Session s = SESSIONS.get(a);
                 if (s != null) s.paused = false;
                 inspect(a);
-                handleKwaiUi(a);
                 main().postDelayed(() -> inspect(a), 160);
-                main().postDelayed(() -> handleKwaiUi(a), 220);
-                main().postDelayed(() -> handleKwaiUi(a), 900);
-                main().postDelayed(() -> handleKwaiUi(a), 1800);
-                main().postDelayed(() -> handleKwaiUi(a), 3500);
-                main().postDelayed(() -> handleKwaiUi(a), 6500);
-                main().postDelayed(() -> handleKwaiUi(a), 10000);
             }
         });
         XposedHelpers.findAndHookMethod(Activity.class, "onPause", new XC_MethodHook() {
@@ -336,14 +322,8 @@ public final class UniversalAdShield implements IXposedHookLoadPackage {
     }
 
     private static void hookWebViewNavigation() {
-        XposedBridge.hookAllConstructors(WebView.class, new XC_MethodHook() {
-            @Override protected void afterHookedMethod(MethodHookParam param) {
-                if (param.thisObject instanceof WebView) configureKwaiWebView((WebView) param.thisObject);
-            }
-        });
         XposedBridge.hookAllMethods(WebView.class, "loadUrl", new XC_MethodHook() {
             @Override protected void beforeHookedMethod(MethodHookParam param) {
-                if (param.thisObject instanceof WebView) configureKwaiWebView((WebView) param.thisObject);
                 Session s = newestSession();
                 if (ACTIVE_COUNT.get() <= 0 || s == null || !s.config.blockExternal
                         || param.args.length == 0
@@ -351,20 +331,6 @@ public final class UniversalAdShield implements IXposedHookLoadPackage {
                 String u = lower((String) param.args[0]);
                 if (u.startsWith("intent:") || u.startsWith("market:") || u.startsWith("tel:")
                         || u.startsWith("mailto:")) param.setResult(null);
-            }
-        });
-        XposedBridge.hookAllMethods(WebViewClient.class, "onReceivedSslError", new XC_MethodHook() {
-            @Override protected void beforeHookedMethod(MethodHookParam param) {
-                if (param.args.length < 2 || !(param.args[0] instanceof WebView)
-                        || !(param.args[1] instanceof SslErrorHandler)) return;
-                WebView web = (WebView) param.args[0];
-                if (!isKwaiGoldWebView(web)) return;
-                try {
-                    ((SslErrorHandler) param.args[1]).proceed();
-                    XposedBridge.log(TAG + ": Kwai Gold WebView SSL fallback applied");
-                    param.setResult(null);
-                } catch (Throwable ignored) {
-                }
             }
         });
     }
@@ -394,10 +360,7 @@ public final class UniversalAdShield implements IXposedHookLoadPackage {
         XposedBridge.hookAllMethods(MediaPlayer.class, "start", new XC_MethodHook() {
             @Override protected void afterHookedMethod(MethodHookParam p) {
                 Session s = newestSession();
-                if (s == null) {
-                    handleKwaiShortPlayer(p.thisObject);
-                    return;
-                }
+                if (s == null) return;
                 MediaPlayer player = (MediaPlayer) p.thisObject;
                 MEDIA_SESSIONS.put(player, new WeakReference<>(s));
                 if (s.config.muteAds) try { player.setVolume(0f, 0f); } catch (Throwable ignored) { }
@@ -719,10 +682,7 @@ public final class UniversalAdShield implements IXposedHookLoadPackage {
                 XposedBridge.hookAllMethods(cls, "start", new XC_MethodHook() {
                     @Override protected void afterHookedMethod(MethodHookParam p) {
                         Session s = newestSession();
-                        if (s == null) {
-                            handleKwaiShortPlayer(p.thisObject);
-                            return;
-                        }
+                        if (s == null) return;
                         Object player = p.thisObject;
                         KWAI_PLAYER_SESSIONS.put(player, new WeakReference<>(s));
                         configureKwaiPlayer(s, player);
@@ -1338,243 +1298,7 @@ public final class UniversalAdShield implements IXposedHookLoadPackage {
 
     private static boolean shouldMuteNow() {
         Session s = newestSession();
-        if (s != null) return s.config.muteAds;
-        Activity kwai = CURRENT_KWAI_ACTIVITY == null ? null : CURRENT_KWAI_ACTIVITY.get();
-        if (kwai == null) return false;
-        AppConfig config = AppConfig.load(kwai, kwai.getPackageName());
-        return config.muteKwaiShorts && kwaiShortFeedVisible(kwai);
-    }
-
-    private static void hookKwaiUi(ClassLoader loader) {
-        Class<?> view = XposedHelpers.findClassIfExists("android.view.View", loader);
-        if (view != null) {
-            try {
-                XposedBridge.hookAllMethods(view, "performClick", new XC_MethodHook() {
-                    @Override protected void beforeHookedMethod(MethodHookParam p) {
-                        Activity a = CURRENT_KWAI_ACTIVITY == null ? null : CURRENT_KWAI_ACTIVITY.get();
-                        if (!usable(a)) return;
-                        AppConfig config = AppConfig.load(a, a.getPackageName());
-                        if (config.blockKwaiShorts && isResourceName((View) p.thisObject,
-                                "id_home_bottom_tab_home")) {
-                            p.setResult(false);
-                            forceKwaiGames(a, config);
-                        }
-                    }
-                });
-            } catch (Throwable t) {
-                XposedBridge.log(TAG + ": Kwai UI click hook unavailable: " + t);
-            }
-        }
-    }
-
-    private static void handleKwaiUi(Activity a) {
-        if (!usable(a) || !"com.kwai.video".equals(a.getPackageName())) return;
-        CURRENT_KWAI_ACTIVITY = new WeakReference<>(a);
-        AppConfig config = AppConfig.load(a, a.getPackageName());
-        if (config.repairKwaiGoldTouch) repairKwaiGoldTouch(a);
-        if (config.forceKwaiGames || config.blockKwaiShorts) forceKwaiGames(a, config);
-    }
-
-    @SuppressLint("SetJavaScriptEnabled")
-    private static void configureKwaiWebView(WebView web) {
-        try {
-            if (web == null || web.getContext() == null
-                    || !"com.kwai.video".equals(web.getContext().getPackageName())) return;
-            AppConfig config = AppConfig.load(web.getContext(), "com.kwai.video");
-            if (!config.repairKwaiWebNetwork) return;
-            WebSettings settings = web.getSettings();
-            if (settings != null) {
-                settings.setDomStorageEnabled(true);
-                settings.setDatabaseEnabled(true);
-                settings.setJavaScriptEnabled(true);
-                settings.setLoadsImagesAutomatically(true);
-                settings.setBlockNetworkLoads(false);
-                settings.setBlockNetworkImage(false);
-                settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-            }
-            try {
-                CookieManager manager = CookieManager.getInstance();
-                manager.setAcceptCookie(true);
-                manager.setAcceptThirdPartyCookies(web, true);
-            } catch (Throwable ignored) {
-            }
-        } catch (Throwable t) {
-            XposedBridge.log(TAG + ": Kwai WebView compatibility failed: " + t);
-        }
-    }
-
-    private static boolean isKwaiGoldWebView(WebView web) {
-        try {
-            if (web == null || web.getContext() == null
-                    || !"com.kwai.video".equals(web.getContext().getPackageName())) return false;
-            AppConfig config = AppConfig.load(web.getContext(), "com.kwai.video");
-            if (!config.repairKwaiWebNetwork) return false;
-            String url = lower(web.getUrl());
-            if (url.contains("incentive.kwai") || url.contains("ug-center")
-                    || url.contains("ugcenter") || url.contains("gold")) return true;
-            Activity a = CURRENT_KWAI_ACTIVITY == null ? null : CURRENT_KWAI_ACTIVITY.get();
-            String cls = a == null ? "" : lower(a.getClass().getName());
-            return cls.contains("kwairnactivity") || cls.contains("overseawebactivity");
-        } catch (Throwable ignored) {
-            return false;
-        }
-    }
-
-    private static void repairKwaiGoldTouch(Activity a) {
-        String cls = lower(a.getClass().getName());
-        if (!cls.contains("kwairnactivity") && !cls.contains("overseawebactivity")) return;
-        try {
-            Window w = a.getWindow();
-            if (w != null) {
-                w.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
-                View decor = w.getDecorView();
-                if (decor != null) {
-                    decor.setEnabled(true);
-                    if (decor instanceof ViewGroup) removeStaleOverlay((ViewGroup) decor);
-                }
-            }
-        } catch (Throwable t) {
-            XposedBridge.log(TAG + ": Kwai Gold touch repair failed: " + t);
-        }
-    }
-
-    private static void forceKwaiGames(Activity a, AppConfig config) {
-        if (!usable(a)) return;
-        View root = a.getWindow() == null ? null : a.getWindow().getDecorView();
-        if (!(root instanceof ViewGroup)) return;
-        if (config.forceKwaiGames && gameCenterVisible(root)) return;
-        View game = findByResourceName(root, "id_bottom_tab_explore");
-        View home = findByResourceName(root, "id_home_bottom_tab_home");
-        if (config.blockKwaiShorts && home != null) {
-            home.setEnabled(false);
-            home.setClickable(false);
-            home.setAlpha(Math.min(home.getAlpha(), 0.45f));
-        }
-        if (!config.forceKwaiGames) return;
-        if (game == null) {
-            // O TinyLaunchActivity de algumas versoes renderiza a barra sem IDs
-            // Android. A aba Jogo ocupa o segundo item da barra inferior.
-            boolean accepted = tapThroughActivity(a, root.getWidth() * 0.30f,
-                    root.getHeight() * 0.981f);
-            XposedBridge.log(TAG + ": Kwai Games fallback tap, accepted=" + accepted);
-            return;
-        }
-        if (game != null && game.isShown() && game.isEnabled()) {
-            try {
-                boolean accepted = game.performClick();
-                // Algumas versoes do Kwai retornam true em performClick(), mas o
-                // listener interno ignora cliques sinteticos no filho. Despachar
-                // pelo Activity percorre a mesma hierarquia de um toque real.
-                accepted |= tapThroughActivity(a, game);
-                XposedBridge.log(TAG + ": Kwai forced to Games tab, accepted=" + accepted);
-            } catch (Throwable t) {
-                XposedBridge.log(TAG + ": Kwai Games click failed: " + t);
-            }
-        }
-    }
-
-    private static boolean tapThroughActivity(Activity activity, View target) {
-        if (!usable(activity) || target == null || target.getWidth() <= 0 || target.getHeight() <= 0)
-            return false;
-        View decor = activity.getWindow() == null ? null : activity.getWindow().getDecorView();
-        if (decor == null) return tapCenter(target);
-        int[] targetPosition = new int[2];
-        int[] decorPosition = new int[2];
-        target.getLocationOnScreen(targetPosition);
-        decor.getLocationOnScreen(decorPosition);
-        float x = targetPosition[0] - decorPosition[0] + target.getWidth() / 2f;
-        float y = targetPosition[1] - decorPosition[1] + target.getHeight() / 2f;
-        return tapThroughActivity(activity, x, y);
-    }
-
-    private static boolean tapThroughActivity(Activity activity, float x, float y) {
-        if (!usable(activity) || x < 0 || y < 0) return false;
-        long now = SystemClock.uptimeMillis();
-        MotionEvent down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, x, y, 0);
-        MotionEvent up = MotionEvent.obtain(now, now + 55, MotionEvent.ACTION_UP, x, y, 0);
-        try {
-            boolean accepted = activity.dispatchTouchEvent(down);
-            accepted |= activity.dispatchTouchEvent(up);
-            return accepted;
-        } catch (Throwable ignored) {
-            return false;
-        } finally {
-            down.recycle();
-            up.recycle();
-        }
-    }
-
-    private static boolean tapCenter(View view) {
-        if (view == null || view.getWidth() <= 0 || view.getHeight() <= 0) return false;
-        long now = SystemClock.uptimeMillis();
-        float x = view.getWidth() / 2f;
-        float y = view.getHeight() / 2f;
-        MotionEvent down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, x, y, 0);
-        MotionEvent up = MotionEvent.obtain(now, now + 55, MotionEvent.ACTION_UP, x, y, 0);
-        try {
-            boolean accepted = view.dispatchTouchEvent(down);
-            accepted |= view.dispatchTouchEvent(up);
-            return accepted;
-        } catch (Throwable ignored) {
-            return false;
-        } finally {
-            down.recycle();
-            up.recycle();
-        }
-    }
-
-    private static void handleKwaiShortPlayer(Object player) {
-        Activity a = CURRENT_KWAI_ACTIVITY == null ? null : CURRENT_KWAI_ACTIVITY.get();
-        if (!usable(a) || !"com.kwai.video".equals(a.getPackageName())) return;
-        AppConfig config = AppConfig.load(a, a.getPackageName());
-        if (!config.muteKwaiShorts || !kwaiShortFeedVisible(a)) return;
-        try {
-            player.getClass().getMethod("setVolume", float.class, float.class).invoke(player, 0f, 0f);
-        } catch (Throwable ignored) {
-        }
-        try {
-            player.getClass().getMethod("setVolume", float.class).invoke(player, 0f);
-        } catch (Throwable ignored) {
-        }
-    }
-
-    private static boolean kwaiShortFeedVisible(Activity a) {
-        View root = a.getWindow() == null ? null : a.getWindow().getDecorView();
-        if (root == null) return false;
-        return findByResourceName(root, "detail_player_view") != null
-                || findByResourceName(root, "slide_play_root_layout") != null;
-    }
-
-    private static boolean gameCenterVisible(View root) {
-        return treeClassNames(root, new StringBuilder(), 0).contains("krnreactrootview")
-                && (findByResourceName(root, "id_bottom_tab_explore") != null);
-    }
-
-    private static void removeStaleOverlay(ViewGroup root) {
-        View overlay = root.findViewWithTag(OVERLAY_TAG);
-        if (overlay != null && overlay.getParent() instanceof ViewGroup)
-            ((ViewGroup) overlay.getParent()).removeView(overlay);
-    }
-
-    private static View findByResourceName(View root, String entryName) {
-        if (isResourceName(root, entryName)) return root;
-        if (root instanceof ViewGroup) {
-            ViewGroup g = (ViewGroup) root;
-            for (int i = 0; i < g.getChildCount(); i++) {
-                View found = findByResourceName(g.getChildAt(i), entryName);
-                if (found != null) return found;
-            }
-        }
-        return null;
-    }
-
-    private static boolean isResourceName(View v, String entryName) {
-        try {
-            int id = v.getId();
-            return id != View.NO_ID && entryName.equals(v.getResources().getResourceEntryName(id));
-        } catch (Throwable ignored) {
-            return false;
-        }
+        return s != null && s.config.muteAds;
     }
 
     private static String lower(String s) {
